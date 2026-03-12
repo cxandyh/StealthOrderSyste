@@ -1,11 +1,4 @@
-import {
-  CustomerVisibleStatus,
-  FactoryOrderStatus,
-  KayakBuildInternalStatus,
-  OrderItemCategory,
-  ReceivedBuildStatus,
-  UserRole,
-} from "@/generated/prisma/client";
+import type { UserRole } from "@/generated/prisma/client";
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: "Admin",
@@ -13,11 +6,48 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   FACTORY_USER: "Factory User",
 };
 
-export const FACTORY_ORDER_STATUS_OPTIONS = Object.values(FactoryOrderStatus);
-export const INTERNAL_STATUS_OPTIONS = Object.values(KayakBuildInternalStatus);
-export const CUSTOMER_STATUS_OPTIONS = Object.values(CustomerVisibleStatus);
-export const ORDER_ITEM_CATEGORY_OPTIONS = Object.values(OrderItemCategory);
-export const RECEIVED_BUILD_STATUS_OPTIONS = Object.values(ReceivedBuildStatus);
+export const FACTORY_ORDER_STATUS_OPTIONS = [
+  "DRAFT",
+  "IN_REVIEW",
+  "CONFIRMED",
+  "ARRIVED",
+  "RECEIVING",
+  "COMPLETED",
+] as const;
+
+export const INTERNAL_STATUS_OPTIONS = [
+  "DRAFT",
+  "CONFIRMING_CUSTOMISATION",
+  "QUOTED",
+  "ACCEPTED",
+  "DEPOSIT_PAID",
+  "SUBMITTED_TO_FACTORY",
+  "IN_BUILD",
+  "WAITING_ON_PARTS",
+  "COMPLETED",
+  "ARRIVED",
+  "UNPACKED_CHECKED",
+  "POST_INSTALLS",
+  "READY_FOR_PICKUP",
+  "DELIVERED",
+] as const;
+
+export const CUSTOMER_STATUS_OPTIONS = [
+  "ORDER_CONFIRMED",
+  "IN_PRODUCTION",
+  "PREPARING_FOR_DELIVERY",
+  "ARRIVED_IN_COUNTRY",
+  "FINAL_PREP",
+  "READY",
+] as const;
+
+export const ORDER_ITEM_CATEGORY_OPTIONS = ["ACCESSORY", "PART"] as const;
+export const RECEIVED_BUILD_STATUS_OPTIONS = [
+  "PENDING",
+  "RECEIVED_OK",
+  "RECEIVED_WITH_ISSUE",
+  "NOT_RECEIVED",
+] as const;
 
 export const MATERIAL_TYPES = [
   "Carbon Hybrid",

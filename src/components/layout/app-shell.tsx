@@ -1,16 +1,11 @@
 import Link from "next/link";
 
 import { signOut } from "@/auth";
+import { canManageDealerData } from "@/features/auth/permissions";
 import { ROLE_LABELS } from "@/features/orders/constants";
 import { SessionUser } from "@/features/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-
-const links = [
-  { href: "/app", label: "Dashboard" },
-  { href: "/app/orders", label: "Orders" },
-  { href: "/app/orders/new", label: "New order" },
-];
 
 export async function AppShell({
   children,
@@ -41,7 +36,13 @@ export async function AppShell({
           </div>
           <Separator className="my-6" />
           <nav className="space-y-2">
-            {links.map((link) => (
+            {[
+              { href: "/app", label: "Dashboard" },
+              { href: "/app/orders", label: "Orders" },
+              ...(canManageDealerData(user)
+                ? [{ href: "/app/orders/new", label: "New order" }]
+                : []),
+            ].map((link) => (
               <Link
                 className="block rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
                 href={link.href}

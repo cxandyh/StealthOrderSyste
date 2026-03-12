@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 
+import { UserRole } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 
 const credentialsSchema = z.object({
@@ -74,9 +75,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub!;
-        session.user.role = token.role;
-        session.user.dealerId = token.dealerId;
-        session.user.supplierId = token.supplierId;
+        session.user.role = token.role as UserRole;
+        session.user.dealerId = token.dealerId as string | null | undefined;
+        session.user.supplierId = token.supplierId as string | null | undefined;
       }
 
       return session;

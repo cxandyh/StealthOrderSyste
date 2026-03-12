@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stealth Order Hub
 
-## Getting Started
+Standalone full-stack order workspace for Stealth kayak factory orders. The app is built with Next.js, TypeScript, Prisma, PostgreSQL, Tailwind, and shadcn/ui.
 
-First, run the development server:
+## Included
+
+- Multi-dealer-aware schema and query scoping
+- Internal roles: `ADMIN`, `DEALER_ADMIN`, `FACTORY_USER`
+- Auth.js credentials scaffolding with server-side route protection
+- Order list/detail pages
+- Kayak build create/edit flow with Stealth-specific fields
+- Build-level dealer/factory comment threads
+- Tokenized customer portal at `/portal/[token]`
+- Receiving session workflow with discrepancy logging
+- Customer status email trigger persisted to notification events
+
+## Local setup
+
+1. Copy `.env.example` to `.env`.
+2. Point `DATABASE_URL` at a Postgres database.
+3. Generate the Prisma client:
+
+```bash
+npm run db:generate
+```
+
+4. Apply the schema to your database. For a quick local setup, `prisma db push` is sufficient:
+
+```bash
+npx prisma db push
+```
+
+5. Seed demo data:
+
+```bash
+npm run db:seed
+```
+
+6. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Demo credentials
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Admin: `admin@stealthorderhub.local`
+- Dealer admin: `dealer@stealthorderhub.local`
+- Factory user: `factory@stealthorderhub.local`
+- Password: `stealth-demo`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Demo customer portal token after seeding:
 
-## Learn More
+- `demo-portal-token-jules-2026-long-secret`
 
-To learn more about Next.js, take a look at the following resources:
+Open it locally at:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `http://localhost:3000/portal/demo-portal-token-jules-2026-long-secret`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Verification
 
-## Deploy on Vercel
+The current codebase passes:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`

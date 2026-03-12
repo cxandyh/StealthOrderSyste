@@ -4,7 +4,6 @@ import {
   DiscrepancyStatus,
   FactoryOrderStatus,
   Prisma,
-  UserRole,
 } from "@/generated/prisma/client";
 import { SessionUser, canAccessDealer, canManageDealerData, isAdmin, isFactoryUser } from "@/features/auth/permissions";
 import { db } from "@/lib/db";

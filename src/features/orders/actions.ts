@@ -5,7 +5,6 @@ import {
   DiscrepancyStatus,
   DiscrepancyType,
   FactoryOrderStatus,
-  OrderItemCategory,
   ReceivedBuildStatus,
 } from "@/generated/prisma/client";
 import { canManageDealerData, isAdmin, isFactoryUser } from "@/features/auth/permissions";
@@ -47,21 +46,23 @@ function optionalFieldsForColourType(colourType: string) {
 }
 
 function buildSummaryJson(data: ReturnType<typeof buildSchema.parse>) {
+  const colours = [
+    data.deckColour,
+    data.hullColour,
+    data.tapeColour,
+    data.tipColour1,
+    data.tipColour2,
+    data.bandColour1,
+    data.bandColour2,
+    data.bandColour3,
+    data.bandColour4,
+    data.bandColour5,
+    data.stripeColour1,
+    data.stripeColour2,
+  ].filter((value): value is string => Boolean(value));
+
   return {
-    colours: [
-      data.deckColour,
-      data.hullColour,
-      data.tapeColour,
-      data.tipColour1,
-      data.tipColour2,
-      data.bandColour1,
-      data.bandColour2,
-      data.bandColour3,
-      data.bandColour4,
-      data.bandColour5,
-      data.stripeColour1,
-      data.stripeColour2,
-    ].filter(Boolean),
+    colours,
     model: data.model,
     stock: data.intendedForStock,
   };

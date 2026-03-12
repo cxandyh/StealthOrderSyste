@@ -9,13 +9,14 @@ import {
 import { z } from "zod";
 
 const optionalText = z.string().trim().optional().nullable();
+const optionalString = z.string().trim().optional().nullable();
 
 export const factoryOrderSchema = z.object({
-  dealerId: z.string().trim().optional(),
+  dealerId: optionalString,
   notes: optionalText,
-  orderId: z.string().trim().optional(),
+  orderId: optionalString,
   orderNumber: z.string().trim().min(1, "Order number is required."),
-  redirectTo: z.string().trim().optional(),
+  redirectTo: optionalString,
   status: z.nativeEnum(FactoryOrderStatus),
   supplierId: z.string().trim().min(1, "Supplier is required."),
   title: optionalText,
@@ -29,7 +30,7 @@ export const buildSchema = z.object({
   bandColour3: optionalText,
   bandColour4: optionalText,
   bandColour5: optionalText,
-  buildId: z.string().trim().optional(),
+  buildId: optionalString,
   colourType: z.string().trim().min(1),
   customerEmail: z
     .string()
@@ -47,7 +48,7 @@ export const buildSchema = z.object({
   materialType: z.string().trim().min(1),
   model: z.string().trim().min(1),
   orderId: z.string().trim().min(1),
-  redirectTo: z.string().trim().optional(),
+  redirectTo: optionalString,
   rodHolderDetails: optionalText,
   serialNumber: optionalText,
   specialRequests: optionalText,
@@ -71,14 +72,14 @@ export const orderItemSchema = z.object({
 export const buildCommentSchema = z.object({
   buildId: z.string().trim().min(1),
   message: z.string().trim().min(1),
-  redirectTo: z.string().trim().optional(),
+  redirectTo: optionalString,
   visibility: z.nativeEnum(CommentVisibility),
 });
 
 export const buildStatusSchema = z.object({
   buildId: z.string().trim().min(1),
   internalStatus: z.nativeEnum(KayakBuildInternalStatus),
-  redirectTo: z.string().trim().optional(),
+  redirectTo: optionalString,
 });
 
 export const receivingStartSchema = z.object({
@@ -91,7 +92,7 @@ export const buildCheckSchema = z.object({
   orderId: z.string().trim().min(1),
   receivedSerialNumber: optionalText,
   receivedStatus: z.nativeEnum(ReceivedBuildStatus),
-  redirectTo: z.string().trim().optional(),
+  redirectTo: optionalString,
   sessionId: z.string().trim().min(1),
 });
 
@@ -100,12 +101,12 @@ export const itemCheckSchema = z.object({
   notes: optionalText,
   orderId: z.string().trim().min(1),
   receivedQty: z.coerce.number().int().min(0),
-  redirectTo: z.string().trim().optional(),
+  redirectTo: optionalString,
   sessionId: z.string().trim().min(1),
 });
 
 export const completeReceivingSchema = z.object({
   orderId: z.string().trim().min(1),
-  redirectTo: z.string().trim().optional(),
+  redirectTo: optionalString,
   sessionId: z.string().trim().min(1),
 });
