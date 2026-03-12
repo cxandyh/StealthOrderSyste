@@ -1,0 +1,417 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DEALER_ADMIN
+  FACTORY_USER
+}
+
+enum FactoryOrderStatus {
+  DRAFT
+  IN_REVIEW
+  CONFIRMED
+  ARRIVED
+  RECEIVING
+  COMPLETED
+}
+
+enum KayakBuildInternalStatus {
+  DRAFT
+  CONFIRMING_CUSTOMISATION
+  QUOTED
+  ACCEPTED
+  DEPOSIT_PAID
+  SUBMITTED_TO_FACTORY
+  IN_BUILD
+  WAITING_ON_PARTS
+  COMPLETED
+  ARRIVED
+  UNPACKED_CHECKED
+  POST_INSTALLS
+  READY_FOR_PICKUP
+  DELIVERED
+}
+
+enum CustomerVisibleStatus {
+  ORDER_CONFIRMED
+  IN_PRODUCTION
+  PREPARING_FOR_DELIVERY
+  ARRIVED_IN_COUNTRY
+  FINAL_PREP
+  READY
+}
+
+enum OrderItemCategory {
+  ACCESSORY
+  PART
+}
+
+enum CommentVisibility {
+  DEALER_FACTORY
+  CUSTOMER_VISIBLE
+}
+
+enum ReceivingSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReceivedBuildStatus {
+  PENDING
+  RECEIVED_OK
+  RECEIVED_WITH_ISSUE
+  NOT_RECEIVED
+}
+
+enum DiscrepancyType {
+  MISSING_ITEM
+  WRONG_ITEM
+  SERIAL_MISMATCH
+  WRONG_SPEC
+  QUANTITY_SHORT
+  OTHER
+}
+
+enum DiscrepancyStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+}
+
+enum NotificationEventType {
+  CUSTOMER_STATUS_CHANGED
+}
+
+enum NotificationEntityType {
+  FACTORY_ORDER
+  KAYAK_BUILD
+}
+
+enum NotificationChannel {
+  EMAIL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model Dealer {
+  id                 String              @id @default(cuid())
+  name               String
+  slug               String              @unique
+  region             String
+  currency           String
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  users              User[]
+  customers          Customer[]
+  factoryOrders      FactoryOrder[]
+  kayakBuilds        KayakBuild[]
+  catalogueItems     CatalogueItem[]
+  orderItems         OrderItem[]
+  receivingSessions  ReceivingSession[]
+  discrepancies      Discrepancy[]
+  notificationEvents NotificationEvent[]
+}
+
+model Supplier {
+  id             String         @id @default(cuid())
+  name           String
+  code           String         @unique
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  users          User[]
+  factoryOrders  FactoryOrder[]
+  catalogueItems CatalogueItem[]
+}
+
+model User {
+  id                         String              @id @default(cuid())
+  dealerId                   String?
+  supplierId                 String?
+  name                       String
+  email                      String              @unique
+  passwordHash               String
+  role                       UserRole
+  isActive                   Boolean             @default(true)
+  lastLoginAt                DateTime?
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  dealer                     Dealer?             @relation(fields: [dealerId], references: [id], onDelete: SetNull)
+  supplier                   Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  createdOrders              FactoryOrder[]      @relation("OrderCreator")
+  startedReceivingSessions   ReceivingSession[]  @relation("ReceivingStarter")
+  completedReceivingSessions ReceivingSession[]  @relation("ReceivingCompleter")
+  buildComments              BuildComment[]      @relation("CommentAuthor")
+  discrepanciesCreated       Discrepancy[]       @relation("DiscrepancyCreator")
+  notifications              NotificationEvent[] @relation("NotificationRecipient")
+
+  @@index([dealerId, role])
+  @@index([supplierId, role])
+}
+
+model Customer {
+  id         String       @id @default(cuid())
+  dealerId   String
+  firstName  String
+  lastName   String
+  email      String?
+  phone      String?
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  dealer     Dealer       @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  kayakBuilds KayakBuild[]
+
+  @@index([dealerId, lastName, firstName])
+}
+
+model FactoryOrder {
+  id               String             @id @default(cuid())
+  dealerId         String
+  supplierId       String
+  orderNumber      String             @unique
+  title            String?
+  status           FactoryOrderStatus @default(DRAFT)
+  notes            String?
+  createdByUserId  String
+  submittedAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  dealer           Dealer             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  supplier         Supplier           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdByUser    User               @relation("OrderCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  builds           KayakBuild[]
+  items            OrderItem[]
+  receivingSessions ReceivingSession[]
+  discrepancies    Discrepancy[]
+
+  @@index([dealerId, status])
+  @@index([supplierId, status])
+}
+
+model KayakBuild {
+  id                    String                   @id @default(cuid())
+  factoryOrderId        String
+  dealerId              String
+  customerId            String?
+  intendedForStock      Boolean                  @default(false)
+  allocationLabel       String?
+  model                 String
+  materialType          String
+  colourType            String
+  deckColour            String
+  hullColour            String
+  tapeColour            String?
+  tipColour1            String?
+  tipColour2            String?
+  bandColour1           String?
+  bandColour2           String?
+  bandColour3           String?
+  bandColour4           String?
+  bandColour5           String?
+  stripeColour1         String?
+  stripeColour2         String?
+  decals                String?
+  rodHolderDetails      String?
+  specialRequests       String?
+  additionalNotes       String?
+  internalStatus        KayakBuildInternalStatus @default(DRAFT)
+  customerVisibleStatus CustomerVisibleStatus    @default(ORDER_CONFIRMED)
+  serialNumber          String?
+  buildSummaryJson      Json?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  factoryOrder          FactoryOrder             @relation(fields: [factoryOrderId], references: [id], onDelete: Cascade)
+  dealer                Dealer                   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  customer              Customer?                @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  itemLines             OrderItem[]
+  comments              BuildComment[]
+  portalToken           CustomerPortalToken?
+  receivedChecks        ReceivedBuildCheck[]
+  discrepancies         Discrepancy[]
+
+  @@index([factoryOrderId])
+  @@index([dealerId, customerVisibleStatus])
+}
+
+model CatalogueItem {
+  id          String            @id @default(cuid())
+  dealerId    String?
+  supplierId  String?
+  sku         String
+  name        String
+  category    OrderItemCategory
+  variantInfo String?
+  notes       String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  dealer      Dealer?           @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  supplier    Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  orderItems  OrderItem[]
+
+  @@index([dealerId, category])
+  @@unique([dealerId, sku])
+}
+
+model OrderItem {
+  id                 String            @id @default(cuid())
+  factoryOrderId     String
+  dealerId           String
+  linkedKayakBuildId String?
+  catalogueItemId    String?
+  category           OrderItemCategory
+  sku                String
+  name               String
+  quantity           Int
+  notes              String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  factoryOrder       FactoryOrder      @relation(fields: [factoryOrderId], references: [id], onDelete: Cascade)
+  dealer             Dealer            @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  linkedKayakBuild   KayakBuild?       @relation(fields: [linkedKayakBuildId], references: [id], onDelete: SetNull)
+  catalogueItem      CatalogueItem?    @relation(fields: [catalogueItemId], references: [id], onDelete: SetNull)
+  receivedChecks     ReceivedItemCheck[]
+  discrepancies      Discrepancy[]
+
+  @@index([factoryOrderId])
+  @@index([dealerId, category])
+}
+
+model BuildComment {
+  id           String            @id @default(cuid())
+  kayakBuildId String
+  authorUserId String?
+  authorRole   UserRole?
+  visibility   CommentVisibility @default(DEALER_FACTORY)
+  message      String
+  createdAt    DateTime          @default(now())
+  kayakBuild   KayakBuild        @relation(fields: [kayakBuildId], references: [id], onDelete: Cascade)
+  authorUser   User?             @relation("CommentAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([kayakBuildId, createdAt])
+}
+
+model ReceivingSession {
+  id                String                 @id @default(cuid())
+  factoryOrderId    String
+  dealerId          String
+  startedByUserId   String
+  completedByUserId String?
+  status            ReceivingSessionStatus @default(IN_PROGRESS)
+  notes             String?
+  startedAt         DateTime               @default(now())
+  completedAt       DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  factoryOrder      FactoryOrder           @relation(fields: [factoryOrderId], references: [id], onDelete: Cascade)
+  dealer            Dealer                 @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  startedByUser     User                   @relation("ReceivingStarter", fields: [startedByUserId], references: [id], onDelete: Restrict)
+  completedByUser   User?                  @relation("ReceivingCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+  buildChecks       ReceivedBuildCheck[]
+  itemChecks        ReceivedItemCheck[]
+
+  @@index([factoryOrderId, status])
+}
+
+model ReceivedBuildCheck {
+  id                   String              @id @default(cuid())
+  receivingSessionId   String
+  kayakBuildId         String
+  receivedStatus       ReceivedBuildStatus @default(PENDING)
+  receivedSerialNumber String?
+  serialMatch          Boolean?
+  notes                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  receivingSession     ReceivingSession    @relation(fields: [receivingSessionId], references: [id], onDelete: Cascade)
+  kayakBuild           KayakBuild          @relation(fields: [kayakBuildId], references: [id], onDelete: Cascade)
+
+  @@unique([receivingSessionId, kayakBuildId])
+}
+
+model ReceivedItemCheck {
+  id                 String           @id @default(cuid())
+  receivingSessionId String
+  orderItemId        String
+  expectedQty        Int
+  receivedQty        Int
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  receivingSession   ReceivingSession @relation(fields: [receivingSessionId], references: [id], onDelete: Cascade)
+  orderItem          OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([receivingSessionId, orderItemId])
+}
+
+model Discrepancy {
+  id              String            @id @default(cuid())
+  dealerId        String
+  factoryOrderId  String
+  kayakBuildId    String?
+  orderItemId     String?
+  discrepancyType DiscrepancyType
+  status          DiscrepancyStatus @default(OPEN)
+  description     String
+  createdByUserId String
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  dealer          Dealer            @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  factoryOrder    FactoryOrder      @relation(fields: [factoryOrderId], references: [id], onDelete: Cascade)
+  kayakBuild      KayakBuild?       @relation(fields: [kayakBuildId], references: [id], onDelete: Cascade)
+  orderItem       OrderItem?        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  createdByUser   User              @relation("DiscrepancyCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([factoryOrderId, status])
+  @@index([kayakBuildId, discrepancyType])
+  @@index([orderItemId, discrepancyType])
+}
+
+model CustomerPortalToken {
+  id             String    @id @default(cuid())
+  kayakBuildId   String    @unique
+  token          String    @unique
+  isRevoked      Boolean   @default(false)
+  expiresAt      DateTime?
+  lastAccessedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  kayakBuild     KayakBuild @relation(fields: [kayakBuildId], references: [id], onDelete: Cascade)
+}
+
+model NotificationEvent {
+  id              String                      @id @default(cuid())
+  dealerId        String?
+  eventType       NotificationEventType
+  entityType      NotificationEntityType
+  entityId        String
+  recipientUserId String?
+  recipientEmail  String?
+  channel         NotificationChannel
+  status          NotificationDeliveryStatus @default(PENDING)
+  payloadJson     Json
+  sentAt          DateTime?
+  createdAt       DateTime                   @default(now())
+  dealer          Dealer?                    @relation(fields: [dealerId], references: [id], onDelete: SetNull)
+  recipientUser   User?                      @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+
+  @@index([dealerId, createdAt])
+  @@index([recipientEmail, status])
+}
