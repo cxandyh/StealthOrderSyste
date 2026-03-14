@@ -6,6 +6,12 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   FACTORY_USER: "Factory User",
 };
 
+export const USER_ROLE_OPTIONS = [
+  "ADMIN",
+  "DEALER_ADMIN",
+  "FACTORY_USER",
+] as const;
+
 export const FACTORY_ORDER_STATUS_OPTIONS = [
   "DRAFT",
   "IN_REVIEW",
@@ -57,10 +63,12 @@ export const MATERIAL_TYPES = [
 ] as const;
 
 export const COLOUR_TYPES = [
-  "SOLID",
-  "TWO_TONE",
-  "MULTI_BAND",
-  "CUSTOM",
+  "PLAIN",
+  "FADED_TIPS",
+  "PAINTED_TIPS",
+  "BANDED",
+  "SINGLE_RACING_STRIPE",
+  "DOUBLE_RACING_STRIPE",
 ] as const;
 
 export const MODEL_SUGGESTIONS = [
@@ -68,4 +76,29 @@ export const MODEL_SUGGESTIONS = [
   "Fusion 480",
   "Evolution 465",
   "SupaLite",
+] as const;
+
+export const STANDARD_COLOUR_OPTIONS = [
+  { label: "White", value: "White", swatch: "#ffffff" },
+  { label: "Post Office Red", value: "Post Office Red", swatch: "#df1900" },
+  { label: "Bright Orange", value: "Bright Orange", swatch: "#fe3b01" },
+  { label: "Canary Yellow", value: "Canary Yellow", swatch: "#fcde0a" },
+  { label: "Lime Green", value: "Lime Green", swatch: "#84ad29" },
+  { label: "Pool Blue", value: "Pool Blue", swatch: "#d6fefe" },
+  { label: "Cornflower Blue", value: "Cornflower Blue", swatch: "#318bc7" },
+  { label: "Strong Blue", value: "Strong Blue", swatch: "#091044" },
+  { label: "Black", value: "Black", swatch: "#000000" },
+  { label: "Mid Gray", value: "Mid Gray", swatch: "#838c91" },
+  { label: "Mist Grey", value: "Mist Grey", swatch: "#838c91" },
+  {
+    label: "Quote for Custom Colour",
+    value: "Quote for Custom Colour",
+    swatch: "transparent",
+  },
+] as const;
+
+export const HULL_OVERRIDE_OPTIONS = [
+  { label: "No hull override", value: "No Hull Override", swatch: "transparent" },
+  { label: "White hull", value: "White Hull", swatch: "#ffffff" },
+  { label: "Clear hull", value: "Clear Hull", swatch: "#d8e2e8" },
 ] as const;

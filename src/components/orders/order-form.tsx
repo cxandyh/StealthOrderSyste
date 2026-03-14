@@ -26,6 +26,9 @@ export function OrderForm({
   user: SessionUser;
 }) {
   const action = order ? updateFactoryOrderAction : createFactoryOrderAction;
+  const formKey = order
+    ? `order-form-${order.id}-${order.status}-${order.updatedAt.toISOString()}`
+    : "order-form-new";
 
   return (
     <Card className="rounded-[2rem] border-slate-200 shadow-none">
@@ -36,7 +39,7 @@ export function OrderForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={action} className="grid gap-4 lg:grid-cols-2">
+        <form action={action} className="grid gap-4 lg:grid-cols-2" key={formKey}>
           {order ? <input name="orderId" type="hidden" value={order.id} /> : null}
           {redirectTo ? <input name="redirectTo" type="hidden" value={redirectTo} /> : null}
           {user.role === "ADMIN" ? (
@@ -69,7 +72,13 @@ export function OrderForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="status">Order status</Label>
-            <select className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm" defaultValue={order?.status ?? FactoryOrderStatus.DRAFT} id="status" name="status">
+            <select
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+              defaultValue={order?.status ?? FactoryOrderStatus.DRAFT}
+              id="status"
+              key={`order-status-${order?.id ?? "new"}-${order?.status ?? FactoryOrderStatus.DRAFT}`}
+              name="status"
+            >
               {FACTORY_ORDER_STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>
                   {status.replaceAll("_", " ")}

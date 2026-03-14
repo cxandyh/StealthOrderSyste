@@ -191,6 +191,7 @@ export async function getBuildForForm(
     },
     include: {
       customer: true,
+      portalToken: true,
       factoryOrder: {
         include: {
           dealer: true,
@@ -284,12 +285,6 @@ export async function getPortalBuildByToken(token: string) {
             },
           },
           customer: true,
-          factoryOrder: {
-            include: {
-              dealer: true,
-              supplier: true,
-            },
-          },
         },
       },
     },

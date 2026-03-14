@@ -1,14 +1,14 @@
 import Link from "next/link";
 
 import { Prisma } from "@/generated/prisma/client";
+import { duplicateBuildAction, updateBuildInternalStatusAction } from "@/features/orders/actions";
 import { SessionUser, canManageDealerData } from "@/features/auth/permissions";
-import { updateBuildInternalStatusAction } from "@/features/orders/actions";
 import { INTERNAL_STATUS_OPTIONS } from "@/features/orders/constants";
 import { fullName } from "@/lib/format";
 import { CommentThread } from "@/components/orders/comment-thread";
+import { KayakPreview } from "@/components/orders/kayak-preview";
 import { StatusBadge } from "@/components/orders/status-badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type BuildCardBuild = Prisma.KayakBuildGetPayload<{
   include: {
@@ -25,13 +25,16 @@ type BuildCardBuild = Prisma.KayakBuildGetPayload<{
 
 export function BuildSummaryCard({
   build,
+  defaultOpen = false,
   orderId,
   user,
 }: {
   build: BuildCardBuild;
+  defaultOpen?: boolean;
   orderId: string;
   user: SessionUser;
 }) {
+  const hullLabel = build.hullColour === "No Hull Override" ? "No override" : build.hullColour;
   const accentColours = [
     build.tipColour1,
     build.tipColour2,
@@ -48,23 +51,47 @@ export function BuildSummaryCard({
     : build.allocationLabel ?? "Stock build";
 
   return (
-    <Card className="rounded-[2rem] border-slate-200 shadow-none">
-      <CardHeader className="gap-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <CardTitle className="text-xl">{build.model}</CardTitle>
-            <CardDescription className="mt-2">{displayName}</CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
+    <details
+      className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-none"
+      open={defaultOpen ? true : undefined}
+    >
+      <summary className="flex cursor-pointer list-none flex-col gap-4 px-5 py-5 marker:hidden lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-950">{build.model}</h3>
             <StatusBadge value={build.internalStatus} />
             <StatusBadge value={build.customerVisibleStatus} />
           </div>
+          <p className="mt-2 text-sm text-slate-600">{displayName}</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {build.deckColour} / {hullLabel}
+            {build.tapeColour ? ` • pinline ${build.tapeColour}` : ""}
+            {accentColours.length ? ` • accents ${accentColours.join(", ")}` : ""}
+          </p>
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {build.intendedForStock && build.allocationLabel ? (
+            <p className="text-sm font-medium text-slate-600">{build.allocationLabel}</p>
+          ) : null}
+          <span className="text-sm font-medium text-teal-700">Open details</span>
+        </div>
+      </summary>
+
+      <div className="space-y-6 border-t border-slate-200 bg-slate-50/60 px-5 py-5">
         <div className="flex flex-wrap gap-3">
           {canManageDealerData(user) ? (
             <Button asChild variant="outline">
               <Link href={`/app/orders/${orderId}/builds/${build.id}/edit`}>Edit build</Link>
             </Button>
+          ) : null}
+          {canManageDealerData(user) ? (
+            <form action={duplicateBuildAction}>
+              <input name="buildId" type="hidden" value={build.id} />
+              <input name="orderId" type="hidden" value={orderId} />
+              <Button type="submit" variant="outline">
+                Duplicate build
+              </Button>
+            </form>
           ) : null}
           {canManageDealerData(user) && build.portalToken ? (
             <Button asChild variant="outline">
@@ -74,12 +101,22 @@ export function BuildSummaryCard({
             </Button>
           ) : null}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-3xl bg-slate-50 p-4">
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          <KayakPreview
+            accentColours={accentColours}
+            className="bg-white"
+            colourType={build.colourType}
+            deckColour={build.deckColour}
+            hullColour={build.hullColour}
+            materialType={build.materialType}
+            model={build.model}
+            tapeColour={build.tapeColour}
+          />
+
+          <div className="rounded-3xl bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Build spec
+              Build specification
             </p>
             <dl className="mt-4 grid gap-3 text-sm">
               <div className="flex justify-between gap-4">
@@ -93,20 +130,33 @@ export function BuildSummaryCard({
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-500">Deck / Hull</dt>
                 <dd className="text-right font-medium text-slate-900">
-                  {build.deckColour} / {build.hullColour}
+                  {build.deckColour} / {hullLabel}
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Tape</dt>
+                <dt className="text-slate-500">Hull override</dt>
+                <dd className="text-right font-medium text-slate-900">
+                  {hullLabel}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-500">Pinline</dt>
                 <dd className="font-medium text-slate-900">{build.tapeColour ?? "Not specified"}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-slate-500">Serial</dt>
                 <dd className="font-medium text-slate-900">{build.serialNumber ?? "Pending"}</dd>
               </div>
+              {build.intendedForStock ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-slate-500">Stock designation</dt>
+                  <dd className="font-medium text-slate-900">{build.allocationLabel ?? "Not specified"}</dd>
+                </div>
+              ) : null}
             </dl>
           </div>
-          <div className="rounded-3xl bg-slate-50 p-4">
+
+          <div className="rounded-3xl bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               Options
             </p>
@@ -136,7 +186,8 @@ export function BuildSummaryCard({
             </div>
           </div>
         </div>
-        <form action={updateBuildInternalStatusAction} className="flex flex-col gap-3 rounded-3xl border border-slate-200 p-4 md:flex-row md:items-center md:justify-between">
+
+        <form action={updateBuildInternalStatusAction} className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
           <input name="buildId" type="hidden" value={build.id} />
           <input name="redirectTo" type="hidden" value={`/app/orders/${orderId}`} />
           <div>
@@ -158,25 +209,24 @@ export function BuildSummaryCard({
             </Button>
           </div>
         </form>
+
         {build.itemLines.length ? (
-          <div className="rounded-3xl border border-slate-200 p-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               Linked item lines
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {build.itemLines.map((item) => (
-                <StatusBadge key={item.id} value={item.category} />
-              ))}
-              {build.itemLines.map((item) => (
-                <p className="text-sm text-slate-700" key={`${item.id}-name`}>
+                <p className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700" key={item.id}>
                   {item.quantity}x {item.name}
                 </p>
               ))}
             </div>
           </div>
         ) : null}
+
         <CommentThread buildId={build.id} comments={build.comments} redirectTo={`/app/orders/${orderId}`} userRole={user.role} />
-      </CardContent>
-    </Card>
+      </div>
+    </details>
   );
 }

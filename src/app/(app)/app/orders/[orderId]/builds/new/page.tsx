@@ -27,10 +27,10 @@ export default async function NewBuildPage({
     <div className="space-y-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-700">
-          New build
+          New kayak
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-          Add build to {order.orderNumber}
+          Add kayak to order {order.orderNumber}
         </h1>
       </div>
       <BuildForm orderId={order.id} redirectTo={`/app/orders/${order.id}`} />

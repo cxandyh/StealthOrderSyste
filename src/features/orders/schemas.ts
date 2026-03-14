@@ -57,6 +57,64 @@ export const buildSchema = z.object({
   tapeColour: optionalText,
   tipColour1: optionalText,
   tipColour2: optionalText,
+}).superRefine((data, ctx) => {
+  if (data.intendedForStock && !data.allocationLabel) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Stock designation is required for stock builds.",
+      path: ["allocationLabel"],
+    });
+  }
+
+  if (!data.tapeColour) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Pinline colour is required.",
+      path: ["tapeColour"],
+    });
+  }
+
+  if (
+    (data.colourType === "FADED_TIPS" || data.colourType === "PAINTED_TIPS") &&
+    (!data.tipColour1 || !data.tipColour2)
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Front and back tip colours are required for tip designs.",
+      path: ["tipColour1"],
+    });
+  }
+
+  if (data.colourType === "BANDED") {
+    const hasAllBandedColours = [
+      data.tipColour1,
+      data.bandColour1,
+      data.bandColour2,
+      data.bandColour3,
+      data.tipColour2,
+    ].every(Boolean);
+
+    if (!hasAllBandedColours) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Banded builds need front tip, front band, middle band, back band, and back tip colours.",
+        path: ["bandColour1"],
+      });
+    }
+  }
+
+  if (
+    (data.colourType === "SINGLE_RACING_STRIPE" ||
+      data.colourType === "DOUBLE_RACING_STRIPE") &&
+    !data.stripeColour1
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Stripe colour is required for racing stripe designs.",
+      path: ["stripeColour1"],
+    });
+  }
 });
 
 export const orderItemSchema = z.object({

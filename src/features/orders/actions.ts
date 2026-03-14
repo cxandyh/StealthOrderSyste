@@ -27,12 +27,51 @@ import { generatePortalToken } from "@/lib/security";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-function optionalFieldsForColourType(colourType: string) {
-  const supportsAccents = colourType === "MULTI_BAND" || colourType === "CUSTOM";
-
-  return supportsAccents
-    ? {}
-    : {
+function accentFieldsForColourType(
+  data: ReturnType<typeof buildSchema.parse>,
+) {
+  switch (data.colourType) {
+    case "FADED_TIPS":
+    case "PAINTED_TIPS":
+      return {
+        bandColour1: null,
+        bandColour2: null,
+        bandColour3: null,
+        bandColour4: null,
+        bandColour5: null,
+        stripeColour1: null,
+        stripeColour2: null,
+        tipColour1: data.tipColour1 ?? null,
+        tipColour2: data.tipColour2 ?? null,
+      };
+    case "BANDED":
+      return {
+        bandColour1: data.bandColour1 ?? null,
+        bandColour2: data.bandColour2 ?? null,
+        bandColour3: data.bandColour3 ?? null,
+        bandColour4: null,
+        bandColour5: null,
+        stripeColour1: null,
+        stripeColour2: null,
+        tipColour1: data.tipColour1 ?? null,
+        tipColour2: data.tipColour2 ?? null,
+      };
+    case "SINGLE_RACING_STRIPE":
+    case "DOUBLE_RACING_STRIPE":
+      return {
+        bandColour1: null,
+        bandColour2: null,
+        bandColour3: null,
+        bandColour4: null,
+        bandColour5: null,
+        stripeColour1: data.stripeColour1 ?? null,
+        stripeColour2: null,
+        tipColour1: null,
+        tipColour2: null,
+      };
+    case "PLAIN":
+    default:
+      return {
         bandColour1: null,
         bandColour2: null,
         bandColour3: null,
@@ -43,6 +82,7 @@ function optionalFieldsForColourType(colourType: string) {
         tipColour1: null,
         tipColour2: null,
       };
+  }
 }
 
 function buildSummaryJson(data: ReturnType<typeof buildSchema.parse>) {
@@ -62,6 +102,7 @@ function buildSummaryJson(data: ReturnType<typeof buildSchema.parse>) {
   ].filter((value): value is string => Boolean(value));
 
   return {
+    allocationLabel: data.intendedForStock ? data.allocationLabel : data.customerName,
     colours,
     model: data.model,
     stock: data.intendedForStock,
@@ -137,7 +178,7 @@ async function ensureBuildPortalToken(buildId: string) {
   });
 
   if (existingToken) {
-    return null;
+    return existingToken.token;
   }
 
   const token = generatePortalToken();
@@ -358,20 +399,7 @@ export async function saveBuildAction(formData: FormData) {
     serialNumber: parsed.serialNumber ?? null,
     specialRequests: parsed.specialRequests ?? null,
     tapeColour: parsed.tapeColour ?? null,
-    ...optionalFieldsForColourType(parsed.colourType),
-    ...(parsed.colourType === "MULTI_BAND" || parsed.colourType === "CUSTOM"
-      ? {
-          bandColour1: parsed.bandColour1 ?? null,
-          bandColour2: parsed.bandColour2 ?? null,
-          bandColour3: parsed.bandColour3 ?? null,
-          bandColour4: parsed.bandColour4 ?? null,
-          bandColour5: parsed.bandColour5 ?? null,
-          stripeColour1: parsed.stripeColour1 ?? null,
-          stripeColour2: parsed.stripeColour2 ?? null,
-          tipColour1: parsed.tipColour1 ?? null,
-          tipColour2: parsed.tipColour2 ?? null,
-        }
-      : {}),
+    ...accentFieldsForColourType(parsed),
   };
 
   const build = existingBuild
@@ -442,6 +470,82 @@ export async function addOrderItemAction(formData: FormData) {
   });
 
   revalidatePath(`/app/orders/${order.id}`);
+}
+
+export async function duplicateBuildAction(formData: FormData) {
+  const parsedBuildId = compactText(formData.get("buildId"));
+  const parsedOrderId = compactText(formData.get("orderId"));
+
+  if (!parsedBuildId || !parsedOrderId) {
+    throw new Error("Build and order are required");
+  }
+
+  const { order } = await getManagedOrder(parsedOrderId);
+  const sourceBuild = await db.kayakBuild.findFirst({
+    where: {
+      id: parsedBuildId,
+      factoryOrderId: order.id,
+    },
+    include: {
+      itemLines: true,
+    },
+  });
+
+  if (!sourceBuild) {
+    throw new Error("Build not found");
+  }
+
+  const duplicatedBuild = await db.kayakBuild.create({
+    data: {
+      additionalNotes: sourceBuild.additionalNotes,
+      allocationLabel: sourceBuild.intendedForStock
+        ? `${sourceBuild.allocationLabel ?? "Stock build"} copy`
+        : sourceBuild.allocationLabel,
+      bandColour1: sourceBuild.bandColour1,
+      bandColour2: sourceBuild.bandColour2,
+      bandColour3: sourceBuild.bandColour3,
+      bandColour4: sourceBuild.bandColour4,
+      bandColour5: sourceBuild.bandColour5,
+      buildSummaryJson: sourceBuild.buildSummaryJson ?? undefined,
+      colourType: sourceBuild.colourType,
+      customerVisibleStatus: sourceBuild.customerVisibleStatus,
+      decals: sourceBuild.decals,
+      dealerId: sourceBuild.dealerId,
+      deckColour: sourceBuild.deckColour,
+      factoryOrderId: sourceBuild.factoryOrderId,
+      hullColour: sourceBuild.hullColour,
+      intendedForStock: sourceBuild.intendedForStock,
+      internalStatus: sourceBuild.internalStatus,
+      materialType: sourceBuild.materialType,
+      model: sourceBuild.model,
+      rodHolderDetails: sourceBuild.rodHolderDetails,
+      serialNumber: null,
+      specialRequests: sourceBuild.specialRequests,
+      stripeColour1: sourceBuild.stripeColour1,
+      stripeColour2: sourceBuild.stripeColour2,
+      tapeColour: sourceBuild.tapeColour,
+      tipColour1: sourceBuild.tipColour1,
+      tipColour2: sourceBuild.tipColour2,
+    },
+  });
+
+  if (sourceBuild.itemLines.length > 0) {
+    await db.orderItem.createMany({
+      data: sourceBuild.itemLines.map((item) => ({
+        category: item.category,
+        dealerId: item.dealerId,
+        factoryOrderId: item.factoryOrderId,
+        linkedKayakBuildId: duplicatedBuild.id,
+        name: item.name,
+        notes: item.notes,
+        quantity: item.quantity,
+        sku: item.sku,
+        catalogueItemId: item.catalogueItemId,
+      })),
+    });
+  }
+
+  redirect(`/app/orders/${order.id}/builds/${duplicatedBuild.id}/edit`);
 }
 
 export async function addBuildCommentAction(formData: FormData) {
@@ -542,6 +646,13 @@ export async function startReceivingSessionAction(formData: FormData) {
   });
 
   const { order, user } = await getManagedOrder(parsed.orderId);
+  if (
+    order.status !== FactoryOrderStatus.CONFIRMED &&
+    order.status !== FactoryOrderStatus.ARRIVED
+  ) {
+    throw new Error("Receiving can only start once the order is confirmed or marked arrived.");
+  }
+
   const existingSession = await db.receivingSession.findFirst({
     where: {
       factoryOrderId: order.id,

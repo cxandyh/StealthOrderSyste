@@ -14,6 +14,14 @@ Standalone full-stack order workspace for Stealth kayak factory orders. The app 
 - Receiving session workflow with discrepancy logging
 - Customer status email trigger persisted to notification events
 
+## Explicitly deferred for the POC
+
+- Catalogue management UI
+- In-app notifications UI
+- Deposit / balance placeholders in the customer portal
+- Stronger admin auth such as 2FA or magic link
+- Shipment / ETA workflow
+
 ## Local setup
 
 1. Copy `.env.example` to `.env`.
